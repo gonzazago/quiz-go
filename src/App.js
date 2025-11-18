@@ -613,8 +613,12 @@ const Quiz = () => {
   const [userAnswers, setUserAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackCorrect, setFeedbackCorrect] = useState(false);
 
   const handleAnswerSelect = (optionIndex) => {
+    if (showFeedback) return; // No permitir cambios mientras se muestra el feedback
+    
     const question = questions[currentQuestion];
     
     if (question.multiple) {
@@ -642,13 +646,21 @@ const Quiz = () => {
       }
     });
 
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswers([]);
-    } else {
-      calculateScore();
-      setShowResults(true);
-    }
+    // Mostrar feedback visual
+    setFeedbackCorrect(isCorrect);
+    setShowFeedback(true);
+
+    // Avanzar después de mostrar el feedback
+    setTimeout(() => {
+      setShowFeedback(false);
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+        setSelectedAnswers([]);
+      } else {
+        calculateScore();
+        setShowResults(true);
+      }
+    }, 1500); // Mostrar feedback por 1.5 segundos
   };
 
   const calculateScore = () => {
@@ -675,6 +687,8 @@ const Quiz = () => {
     setUserAnswers({});
     setShowResults(false);
     setScore({ correct: 0, total: 0 });
+    setShowFeedback(false);
+    setFeedbackCorrect(false);
   };
 
   const percentage = showResults ? Math.round((score.correct / score.total) * 100) : 0;
@@ -762,7 +776,7 @@ const Quiz = () => {
   return (
     <div className="app-shell">
       <div className="quiz-layout">
-        <div className="quiz-card">
+        <div className={`quiz-card ${showFeedback ? (feedbackCorrect ? 'quiz-card--correct' : 'quiz-card--incorrect') : ''}`}>
           <div className="quiz-header">
             <h1 className="quiz-title">Quiz Segundo Parcial</h1>
             <p className="quiz-subtitle">Pregunta {currentQuestion + 1} de {questions.length}</p>
@@ -793,7 +807,8 @@ const Quiz = () => {
                 <button
                   key={index}
                   onClick={() => handleAnswerSelect(index)}
-                    className={`option-button ${isSelected ? 'option-button--selected' : ''}`}
+                  disabled={showFeedback}
+                  className={`option-button ${isSelected ? 'option-button--selected' : ''} ${showFeedback ? 'option-button--disabled' : ''}`}
                   >
                     <div className="option-button__inner">
                       <div className={`option-radio ${isSelected ? 'option-radio--selected' : ''}`}>
@@ -813,10 +828,13 @@ const Quiz = () => {
 
             <button
               onClick={handleSubmitAnswer}
-              disabled={selectedAnswers.length === 0}
+              disabled={selectedAnswers.length === 0 || showFeedback}
               className={submitButtonClass}
             >
-              {currentQuestion < questions.length - 1 ? 'Siguiente Pregunta' : 'Ver Resultados'}
+              {showFeedback 
+                ? (feedbackCorrect ? '✓ Correcto' : '✗ Incorrecto')
+                : (currentQuestion < questions.length - 1 ? 'Siguiente Pregunta' : 'Ver Resultados')
+              }
             </button>
           </div>
         </div>
